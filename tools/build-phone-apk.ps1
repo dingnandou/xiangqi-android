@@ -21,6 +21,15 @@ foreach ($folder in @($buildRoot, $outputRoot, "$buildRoot\generated", "$buildRo
 }
 function Assert-Exit([string]$step) { if ($LASTEXITCODE -ne 0) { throw "$step 失败：退出码 $LASTEXITCODE" } }
 
+& "$PSScriptRoot\build-strong-engine.ps1" -Sdk $Sdk
+New-Item -ItemType Directory -Path "$buildRoot\source\assets", "$buildRoot\native\lib" -Force | Out-Null
+Copy-Item -LiteralPath "$projectRoot\engine\src\main\assets\pikafish.nnue" -Destination "$buildRoot\source\assets\pikafish.nnue"
+Copy-Item -Path "$sourceRoot\assets\*" -Destination "$buildRoot\source\assets" -Force
+foreach ($abi in @('arm64-v8a','x86_64')) {
+    New-Item -ItemType Directory -Path "$buildRoot\native\lib\$abi" -Force | Out-Null
+    Copy-Item -LiteralPath "$projectRoot\.phone-build\native\$abi\libstrongengine.so" -Destination "$buildRoot\native\lib\$abi\libstrongengine.so"
+}
+
 # aapt2 的 Windows 版本不能可靠处理中文目录；用临时英文目录构建，最后复制安装包。
 Copy-Item -LiteralPath "$sourceRoot\res" -Destination "$buildRoot\source" -Recurse
 Copy-Item -LiteralPath "$sourceRoot\AndroidManifest.xml" -Destination "$buildRoot\source\AndroidManifest.xml"
@@ -35,7 +44,8 @@ Write-Output '1/6 编译安卓资源'
 & "$toolsRoot\aapt2.exe" compile --dir "$buildRoot\source\res" -o "$buildRoot\resources.zip"
 Assert-Exit '资源编译'
 & "$toolsRoot\aapt2.exe" link -I $androidJar --manifest "$buildRoot\source\AndroidManifest.xml" `
-    --min-sdk-version 23 --target-sdk-version 36 --version-code 2 --version-name '1.1' `
+    --min-sdk-version 26 --target-sdk-version 36 --version-code 3 --version-name '2.0' `
+    -A "$buildRoot\source\assets" -0 nnue `
     --java "$buildRoot\generated" -o "$buildRoot\unsigned.apk" "$buildRoot\resources.zip"
 Assert-Exit '资源链接'
 
@@ -48,11 +58,13 @@ Assert-Exit 'Java 编译'
 Assert-Exit '类文件打包'
 
 Write-Output '3/6 生成安卓 DEX'
-& $javaExe -cp "$toolsRoot\lib\d8.jar" com.android.tools.r8.D8 --min-api 23 --lib $androidJar `
+& $javaExe -cp "$toolsRoot\lib\d8.jar" com.android.tools.r8.D8 --min-api 26 --lib $androidJar `
     --output "$buildRoot\dex" "$buildRoot\classes.jar"
 Assert-Exit 'DEX 编译'
 & $jarExe uf "$buildRoot\unsigned.apk" -C "$buildRoot\dex" classes.dex
 Assert-Exit '加入 DEX'
+& $jarExe uf "$buildRoot\unsigned.apk" -C "$buildRoot\native" lib
+Assert-Exit '加入专业引擎'
 
 Write-Output '4/6 对齐安装包'
 & "$toolsRoot\zipalign.exe" -f 4 "$buildRoot\unsigned.apk" "$buildRoot\aligned.apk"

@@ -22,6 +22,11 @@ public final class ChessChecks {
     }
     public static void main(String[] args) throws Exception {
         int[] b = Chess.initial();
+        require(Chess.fen(b, Chess.RED).equals("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"), "FEN encodes Xiangqi initial board");
+        Chess.Move decoded = Chess.fromUci("b0c2");
+        require(decoded != null && decoded.from == 82 && decoded.to == 65 && Chess.legal(b, decoded.from, decoded.to, Chess.RED), "Engine UCI coordinates match touch coordinates");
+        require(Chess.fromUci("a9z0") == null && Chess.fromUci("none") == null, "Reject malformed engine replies");
+        require(Chess.notation(b, decoded).equals("马八进七"), "Chinese move notation uses red perspective");
         require(Chess.moves(b, Chess.RED).size() == 44, "Opening legal moves must be 44");
         require(perft(b, Chess.RED, 2) == 1920, "Opening depth-2 nodes must be 1920");
         require(perft(b, Chess.RED, 3) == 79666, "Opening depth-3 nodes must be 79666");

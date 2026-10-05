@@ -23,7 +23,7 @@ Call-Adb @('shell','am','force-stop',$package) | Out-Null
 Call-Adb @('shell','pm','clear',$package) | Out-Null
 Call-Adb @('logcat','-c') | Out-Null
 Call-Adb @('shell','am','start','-W','-n',"$package/.MainActivity") | Out-Null
-Tap-Text '模式'; Tap-Text '观战：AI 对战 AI'
+Tap-Text 'AI 观战'; Tap-Text '普通'; Tap-Text '开始观战'
 $state = Wait-Moves 4
 Require ($state.watch -eq $true -and $state.two -eq $false) '进入 AI 双方观战'
 Require ($state.history[0].turn -eq 1 -and $state.history[1].turn -eq -1 -and $state.history[2].turn -eq 1 -and $state.history[3].turn -eq -1) '红黑 AI 连续交替走棋'
@@ -63,6 +63,7 @@ Require ([bool]$ui.SelectSingleNode('//node[contains(@text,"观战已暂停")]')
 $saved = Read-State
 Call-Adb @('shell','am','force-stop',$package) | Out-Null
 Call-Adb @('shell','am','start','-W','-n',"$package/.MainActivity") | Out-Null
+Tap-Text '继续上局'
 $ui = Read-Ui
 $state = Read-State
 Require (($state.board -join ',') -eq ($saved.board -join ',') -and $state.watch -eq $true -and $state.watchDelay -eq 4000) '重启恢复观战棋局和速度'
@@ -78,9 +79,9 @@ Call-Adb @('shell','wm','size','reset') | Out-Null
 Tap-Text '重开'; Tap-Text '重开'
 $ui = Read-Ui
 Tap-Text '暂停'
-Tap-Text '模式'; Tap-Text '对手难度'; Tap-Text '轻松'
+Tap-Text '模式'; Tap-Text '对手难度'; Tap-Text '简单'
 $ui = Read-Ui
-Require ([bool]$ui.SelectSingleNode('//node[contains(@text,"轻松 AI")]')) '双方 AI 难度可调整'
+Require ([bool]$ui.SelectSingleNode('//node[contains(@text,"简单 AI")]')) '双方 AI 难度可调整'
 Tap-Text '下一步'
 $state = Wait-Moves 1
 Require (@($state.history).Count -eq 1) '重开与难度切换后可逐步走棋'

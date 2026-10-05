@@ -26,15 +26,26 @@ function Read-State {
     return ($doc.SelectSingleNode('/map/string[@name="saved"]').InnerText | ConvertFrom-Json)
 }
 function Rectangle([string]$Bounds) {
-    $n = [regex]::Matches($Bounds, '\d+') | ForEach-Object { [int]$_.Value }
+    $n = [regex]::Matches($Bounds, '-?\d+') | ForEach-Object { [int]$_.Value }
     return @($n)
 }
 function Tap-Text([string]$Text) {
-    $ui = Read-Ui
-    $node = @($ui.SelectNodes('//node') | Where-Object { $_.text -eq $Text -and $_.enabled -eq 'true' }) | Select-Object -Last 1
-    if (-not $node) { throw "找不到控件：$Text" }
-    $r = Rectangle $node.bounds
-    Call-Adb @('shell', 'input', 'tap', [string][int](($r[0]+$r[2])/2), [string][int](($r[1]+$r[3])/2)) | Out-Null
+    for ($attempt = 0; $attempt -lt 5; $attempt++) {
+        $ui = Read-Ui
+        $node = @($ui.SelectNodes('//node') | Where-Object { $_.text -eq $Text -and $_.enabled -eq 'true' -and $_.bounds -ne '[0,0][0,0]' }) | Select-Object -Last 1
+        if ($node) {
+            $r = Rectangle $node.bounds
+            Call-Adb @('shell', 'input', 'tap', [string][int](($r[0]+$r[2])/2), [string][int](($r[1]+$r[3])/2)) | Out-Null
+            return
+        }
+        $scroll = $ui.SelectSingleNode('//node[@scrollable="true"]')
+        if (-not $scroll) { break }
+        $r = Rectangle $scroll.bounds; $x = [string][int](($r[0]+$r[2])/2)
+        $from = [string]($r[3]-35); $to = [string]($r[1]+35)
+        if ($attempt -eq 0) { $from = [string]($r[1]+35); $to = [string]($r[3]-35) }
+        Call-Adb @('shell','input','swipe',$x,$from,$x,$to,'250') | Out-Null
+    }
+    throw "找不到控件：$Text"
 }
 function Tap-Board([int]$Position) {
     $ui = Read-Ui
@@ -48,10 +59,10 @@ function Tap-Board([int]$Position) {
     Call-Adb @('shell', 'input', 'tap', [string][int]$x, [string][int]$y) | Out-Null
 }
 function Wait-Reply {
-    for ($i=0; $i -lt 30; $i++) {
+    for ($i=0; $i -lt 80; $i++) {
         $state = Read-State
         if ($state.turn -eq 1 -and @($state.history).Count -ge 2) { return $state }
-        Start-Sleep -Milliseconds 100
+        Start-Sleep -Milliseconds 150
     }
     throw '手机没有按时完成回着'
 }
@@ -64,6 +75,9 @@ $launch = Call-Adb @('shell','am','start','-W','-n',"$package/.MainActivity")
 Require (($launch -join "`n") -match 'Status: ok') '安卓应用启动'
 $ui = Read-Ui
 Require ([bool]$ui.SelectSingleNode('//node[@text="掌上象棋"]')) '标题与手机界面可见'
+Require (-not [bool]$ui.SelectSingleNode('//node[starts-with(@content-desc,"中国象棋棋盘")]')) '首次启动进入主界面'
+Tap-Text '人机对战'; Tap-Text '普通'; Tap-Text '开始对局'
+$ui = Read-Ui
 Require ([bool]$ui.SelectSingleNode('//node[@text="轮到红方"]')) '红方先走'
 Require ([bool]$ui.SelectSingleNode('//node[@text="悔棋" and @enabled="false"]')) '开局不能凭空悔棋'
 
@@ -87,6 +101,9 @@ $state = Wait-Reply
 $savedBoard = $state.board -join ','
 Call-Adb @('shell','am','force-stop',$package) | Out-Null
 Call-Adb @('shell','am','start','-W','-n',"$package/.MainActivity") | Out-Null
+$ui = Read-Ui
+Require ([bool]$ui.SelectSingleNode('//node[@text="继续上局"]')) '重启先显示主界面和继续入口'
+Tap-Text '继续上局'
 $ui = Read-Ui
 $state = Read-State
 Require (($state.board -join ',') -eq $savedBoard -and @($state.history).Count -eq 2) '进程关闭后恢复棋局和悔棋记录'

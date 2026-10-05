@@ -35,6 +35,39 @@ public final class Chess {
         return piece > 0 ? RED_NAMES[piece] : BLACK_NAMES[-piece];
     }
 
+    public static String fen(int[] board, int side) {
+        StringBuilder out = new StringBuilder();
+        String pieces = " kabnrcp";
+        for (int y = 0; y < 10; y++) {
+            int empty = 0;
+            for (int x = 0; x < 9; x++) {
+                int p = board[y * 9 + x];
+                if (p == 0) { empty++; continue; }
+                if (empty > 0) { out.append(empty); empty = 0; }
+                char ch = pieces.charAt(Math.abs(p));
+                out.append(p > 0 ? Character.toUpperCase(ch) : ch);
+            }
+            if (empty > 0) out.append(empty);
+            if (y < 9) out.append('/');
+        }
+        return out.append(side == RED ? " w - - 0 1" : " b - - 0 1").toString();
+    }
+
+    public static Move fromUci(String text) {
+        if (text == null || !text.matches("[a-i][0-9][a-i][0-9]")) return null;
+        return new Move((9 - (text.charAt(1) - '0')) * 9 + text.charAt(0) - 'a',
+                (9 - (text.charAt(3) - '0')) * 9 + text.charAt(2) - 'a');
+    }
+
+    public static String notation(int[] board, Move move) {
+        int p = board[move.from], side = p > 0 ? RED : BLACK;
+        int fx = move.from % 9, tx = move.to % 9, dy = move.to / 9 - move.from / 9;
+        String numbers = side == RED ? "零一二三四五六七八九" : "0123456789";
+        int fromFile = side == RED ? 9 - fx : fx + 1, toFile = side == RED ? 9 - tx : tx + 1;
+        int detail = dy == 0 || Math.abs(p) == HORSE || Math.abs(p) == ELEPHANT || Math.abs(p) == ADVISOR ? toFile : Math.abs(dy);
+        return name(p) + numbers.charAt(fromFile) + (dy == 0 ? "平" : dy * side < 0 ? "进" : "退") + numbers.charAt(detail);
+    }
+
     private static boolean palace(int x, int y, int side) {
         return x >= 3 && x <= 5 && (side == RED ? y >= 7 && y <= 9 : y >= 0 && y <= 2);
     }

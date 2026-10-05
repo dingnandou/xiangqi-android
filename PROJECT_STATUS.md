@@ -1,80 +1,65 @@
 # 当前工程状态
 
-更新日期：2026-10-05。
+更新日期：2026-10-05。当前版本：掌上象棋 2.0 / versionCode 3。
 
-## 当前用户目标
+## 本轮实现
 
-简单的自用安卓象棋游戏。只在手机上玩，支持手机自动对手、同机双人以及 AI 对战 AI 观战。用户已明确降低功能要求，因此本轮不按此前完整课程/复盘平台排期开发。
+- 新首页：三种模式、四档难度、开始新局、继续上局、设置、说明与关于。
+- 米白/朱红/木色统一视觉，卡片式选择与双方信息、渐变木棋盘与棋子、回合显示。
+- 人机、双人和 AI 观战；暂停、逐步、调速、提示、悔棋、重开、认输。
+- 简单/普通使用 Java 对手，困难/大师实际调用 Pikafish 专业引擎。
+- 返回首页/后台停止计算并保存，丢弃过期回着；恢复先进入首页，由用户继续。
+- 新局待选项独立保存，继续上局保留原难度与棋局。
+- version 2 存档兼容 version 1，保存总着数、胜方和结束原因。
 
-## 当前实现
+## 平台与构建
 
-- 游戏名称：掌上象棋。
-- 包名：com.yijin.xiangqi.light。
-- 版本：1.1 / versionCode 2。
-- 最低系统：Android 6.0 / API 23。
-- 编译与目标 SDK：36。
-- 原生 Java Activity 和 Canvas 棋盘；无第三方运行库，无联网权限。
-- 单人模式：红方人类，黑方手机自动走棋。
-- 双人模式：同一部手机轮流落子。
-- 观战模式：AI 执双方连续交替走棋，支持暂停/继续、下一步以及 1/2/4 秒间隔。
-- 观战暂停时可查看提示、撤回一着；退出后暂停保存，恢复后由用户继续。
-- 轻松/普通两档；本地有限时搜索。
-- 合法落点、将军、将死、困毙、悔棋、建议箭头、重开。
-- SharedPreferences 保存棋盘、模式、难度与悔棋历史。
-- 后台取消搜索，前台继续；请求代次核对，丢弃过期回着。
-- 手机竖屏优先。
+- 包名：com.yijin.xiangqi.light；最低 Android 8.0 / API 26。
+- 支持 arm64-v8a 手机、x86_64 测试设备；不含 32 位 ABI。
+- compile/target SDK 36，Java 8 字节码，原生 Activity/Canvas。
+- JDK 17、build-tools 36.0.0、NDK 28.2.13676358、CMake 3.22.1。
+- libstrongengine.so 静态链接 libc++，LOAD 段 16 KB 对齐。
+- APK 内置 NNUE，不申请联网权限。
+- 签名与旧版一致；v2/v3 签名，密钥不入库。
 
 ## 关键文件
 
-| 文件 | 用途 |
+| 路径 | 用途 |
 |---|---|
-| app/src/main/java/com/yijin/xiangqi/light/Chess.java | 规则、合法着生成、轻量手机对手 |
-| app/src/main/java/com/yijin/xiangqi/light/MainActivity.java | 界面、交互、生命周期、存档 |
-| app/src/main/AndroidManifest.xml | 启动页、名称、竖屏配置 |
-| tools/build-phone-apk.ps1 | 独立 SDK 打包与签名，不需要 Gradle 网络下载 |
-| tools/ChessChecks.java | 规则、开局节点、自对弈及取消检查 |
-| tools/check-phone-ui.ps1 | 临时安卓模拟器的实际交互测试 |
-| tools/check-watch-ui.ps1 | 观战交互、暂停、恢复和模式切换检查 |
-| output/掌上象棋.apk | 已生成的自用安装包 |
+| app/src/main/java/com/yijin/xiangqi/light/MainActivity.java | 首页、棋盘、模式、设置、存档和生命周期 |
+| app/src/main/java/com/yijin/xiangqi/light/Chess.java | 规则、轻量对手、FEN/UCI、基础记谱 |
+| app/src/main/java/com/yijin/xiangqi/light/StrongEngine.java | NNUE 校验、专业引擎调度、合法着检查 |
+| app/src/main/cpp/strong_bridge.cpp | 引擎回调、限时搜索、共享生命周期 |
+| app/src/main/cpp/CMakeLists.txt | 两个 ABI 的引擎构建 |
+| tools/build-phone-apk.ps1 | 编译、打包、签名、安装包检查 |
+| tools/build-strong-engine.ps1 | 手机和模拟器本地库构建 |
+| tools/check-home-ui.ps1 | 首页、四档对手、返回/继续、取消、设置、大字体 |
+| tools/check-phone-ui.ps1 | 单人/双人/提示/悔棋/恢复 |
+| tools/check-watch-ui.ps1 | 观战连续走棋、暂停、逐步、恢复 |
+| output/掌上象棋.apk | 最新安装包 |
 
-构建脚本只编译 light 目录的 Java 代码。旧 Kotlin 验证页面与 engine 模块保留但不进入本安装包。
+## 专业引擎
 
-## 工具链
+使用保留的 Pikafish 源码，新桥接独立于旧 M0 桥接。必要回调在重建工作线程前注册，startTime 初始化，句柄采用 shared_ptr 延长调用生命周期。阻塞搜索与销毁在单工作线程执行，停止可由主线程安全请求。
 
-- JDK 17.0.20.1。
-- Android build-tools 36.0.0，platform android-36。
-- Java --release 8，D8 min API 23。
-- aapt2 编译资源、DEX 打包、zipalign 对齐、apksigner v1/v2/v3 签名。
-- 原生引擎实验的 NDK/NNUE 不是这个游戏的构建前提。
+NNUE SHA256：`7D13D73569A9B571BA0EB20CF1596247BC2A42738967E61AFEF6482B231E900E`。加载前完整校验，UCI 返回值经 Java 规则检查。
 
-本机默认 SDK/JDK 路径在 build-phone-apk.ps1 参数中；可显式指定自己的路径。
+Pikafish 为 GPL-3.0，权重采用上游非商业许可。对应源代码和许可证随项目提供，许可证也随 APK 提供。
 
-## 数据与规则边界
+## 验证
 
-- 存档 JSON schema version 1；轮走方、90 交点棋子及最多 300 个回退快照。
-- 七种棋子、九宫、河界、马腿、象眼、炮架、将帅照面、自陷将军过滤。
-- 将死与困毙均判负，不允许吃掉将帅后继续玩。
-- 休闲规则不自动判罚复杂长将长捉；说明页告知可以自行重开。
-- 手机对手是休闲本地搜索，不作专业棋力等级承诺。
+- 46 项 Java 检查通过：规则、perft 44/1920/79666、合法对弈/取消、FEN、UCI、基础记谱。
+- arm64-v8a/x86_64 编译、ELF 对齐、APK 资源/DEX/签名/ZIP 对齐通过。
+- Android 11 / API 30 / x86_64 实际安装运行，覆盖更新保留 1.1 旧棋局，启动先显示首页。
+- 35 项首页检查、22 项基础对战检查、26 项观战检查通过，共 83 项。
+- 四档真实回着，困难/大师原生库实际加载；大师提示、红黑逐步观战、返回首页时取消通过。
+- 检查期间没有 Java 或原生崩溃，小屏 360×800/412×915 与字体 1.3 倍已检查。
+- 未在实体 arm64 手机实测；大师不代表正式赛事棋力评级。
 
-## 已完成验证
+## 范围说明
 
-- Java 检查 42 项通过。
-- 开局合法着数 44，perft 深度 2 为 1920，深度 3 为 79666。
-- APK 编译、DEX 生成、签名和对齐验证通过。
-- 在 Android 11 / API 30 / x86_64 安卓模拟器中安装并启动成功。
-- 20 项实际交互检查通过：红先、落子、自动回着、单双人悔棋、提示、重开、进程重启恢复、双人轮流落子与小屏适配。
-- 测试屏幕覆盖 360×800、约 393×851、412×915，160 dpi。
-- 交互测试期间无 AndroidRuntime 崩溃。
-- 补充验证通过：难度切换、断网对弈、快速落子后悔棋时丢弃过期回着。
-- 1.1 版安装包 SHA256：`794D5DF8DA49EDB85649034AFCC892BD28F54D04F4DCDA3BD648CD7A84015D21`；已核对与模拟器实际测试包一致。
-- 从 1.0 同签名覆盖安装 1.1 成功，原棋局存档保留。
-- 1.1 版原有 20 项实际交互检查重新通过，新增观战 26 项实际交互检查通过。
-- 观战检查覆盖双方连续交替走棋、暂停、逐步、提示、单着悔棋、速度保存、后台暂停、进程重启恢复、小屏和切回单人；无 AndroidRuntime 崩溃。
-- 暂未在用户的实体手机上安装测试。
+个人离线游戏，不实现账号、联机排行或完整课程系统。休闲规则不自动判罚复杂长将长捉。
 
-## 保留的旧工作
+旧 Kotlin 验证页面、旧 JNI 桥接和 01～04 文档保留为历史资料，不进入当前安装包；其旧缺陷报告不代表新桥接运行结果。
 
-原生 engine 模块、NNUE 实验和 01～04 号规划/审查资料保留。本次用轻量手机游戏满足简化后的目标，没有宣称已修完旧专业引擎的审查问题。
-
-后续用户若要求更强对手或完整复盘，可以另行接回成熟引擎；不影响当前 APK 离线游玩。
+最终 APK SHA256：`11516A88F7999A15E7D9F28A4D08143CF9DE387BB02AA0F12EAF5D1C3D430596`；大小 51807366 字节。
