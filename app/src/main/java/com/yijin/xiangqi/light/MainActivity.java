@@ -42,6 +42,7 @@ public final class MainActivity extends Activity {
             RED_INK = 0xff963d35, WOOD = 0xfff0dfbb, LINE = 0xff927858, GOLD = 0xffb18a4d;
     private static final String[] LEVELS = {"简单", "普通", "困难", "大师"};
     private static final String[] LEVEL_NOTES = {"熟悉规则，轻松入门", "稳扎稳打，练习应对", "专业引擎，深入计算", "专业引擎，全力挑战"};
+    private final WoodPiecePainter piecePainter = new WoodPiecePainter();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private Future<?> search;
@@ -241,9 +242,7 @@ public final class MainActivity extends Activity {
     private LinearLayout player(boolean red) {
         LinearLayout card = new LinearLayout(this); card.setGravity(android.view.Gravity.CENTER_VERTICAL);
         card.setPadding(dp(10), dp(6), dp(10), dp(6)); card.setBackground(panel(0xfffffdfa, 0xffe8dfd2, 14));
-        TextView avatar = label(red ? "帅" : "将", 23, red ? RED_INK : INK);
-        avatar.setGravity(17); avatar.setTypeface(Typeface.create("serif", Typeface.BOLD));
-        avatar.setBackground(panel(red ? 0xfff1e3dc : 0xffeeeae2, 0, 12)); card.addView(avatar, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        card.addView(new PieceAvatar(red), new LinearLayout.LayoutParams(dp(36), dp(36)));
         LinearLayout text = column(); text.setPadding(dp(10), 0, 0, 0);
         TextView name = label("", 13, INK), meta = label("", 10, MUTED); name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         text.addView(name); meta.setPadding(0, dp(3), 0, 0); text.addView(meta);
@@ -332,7 +331,7 @@ public final class MainActivity extends Activity {
     }
     private void showAbout() {
         new AlertDialog.Builder(this).setTitle("关于掌上象棋")
-                .setMessage("掌上象棋 2.0\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
+                .setMessage("掌上象棋 2.1\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
                 .setPositiveButton("关闭", null).show();
     }
 
@@ -618,6 +617,19 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() { cancelSearch(); worker.submit(() -> strongEngine.close()); worker.shutdown(); super.onDestroy(); }
 
+    private final class PieceAvatar extends View {
+        private final boolean red;
+        PieceAvatar(boolean red) {
+            super(MainActivity.this); this.red = red;
+            setContentDescription(red ? "红方帅" : "黑方将");
+        }
+        @Override protected void onDraw(Canvas c) {
+            super.onDraw(c);
+            piecePainter.draw(c, getWidth() / 2f, getHeight() / 2f,
+                    Math.min(getWidth(), getHeight()) * .425f, red ? "帅" : "将", red);
+        }
+    }
+
     private final class HeroView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         HeroView() { super(MainActivity.this); setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO); }
@@ -629,13 +641,7 @@ public final class MainActivity extends Activity {
                 c.drawLine(getWidth() - dp(143), cy + dp(i * 22), getWidth(), cy + dp(i * 22), paint);
             }
             c.save(); c.rotate(-12, cx, cy);
-            paint.setStyle(Paint.Style.FILL); paint.setColor(0xffebd7b3); paint.setShadowLayer(dp(5), 0, dp(3), 0x503c1711);
-            c.drawCircle(cx, cy, dp(33), paint); paint.clearShadowLayer();
-            paint.setStyle(Paint.Style.STROKE); paint.setColor(0xff8f4438); paint.setStrokeWidth(dp(1.5f));
-            c.drawCircle(cx, cy, dp(29), paint); c.drawCircle(cx, cy, dp(26), paint);
-            paint.setStyle(Paint.Style.FILL); paint.setTypeface(Typeface.create("serif", Typeface.BOLD));
-            paint.setTextSize(dp(36)); paint.setTextAlign(Paint.Align.CENTER);
-            c.drawText("马", cx, cy - (paint.ascent() + paint.descent()) / 2, paint); c.restore();
+            piecePainter.draw(c, cx, cy, dp(33), "马", true); c.restore();
         }
     }
 
@@ -654,7 +660,7 @@ public final class MainActivity extends Activity {
             cell = Math.min((getWidth() - dp(12)) / 8.84f, (getHeight() - dp(12)) / 9.84f);
             if (cell <= 0) return;
             ox = (getWidth() - 8 * cell) / 2; oy = (getHeight() - 9 * cell) / 2;
-            float radius = cell * .42f;
+            float radius = cell * .44f;
             ink(WOOD, 1, Paint.Style.FILL);
             paint.setShader(new LinearGradient(ox, oy, ox + 8 * cell, oy + 9 * cell, 0xfff2e4c9, 0xffe7cfa6, Shader.TileMode.CLAMP));
             c.drawRoundRect(ox - radius - dp(3), oy - radius - dp(3), ox + 8 * cell + radius + dp(3),
@@ -682,17 +688,7 @@ public final class MainActivity extends Activity {
             }
             for (int at = 0; at < 90; at++) {
                 if (board[at] == 0) continue;
-                float x = px(at), y = py(at);
-                ink(0xfff8e8c9, 1, Paint.Style.FILL);
-                paint.setShader(new LinearGradient(x - radius, y - radius, x + radius, y + radius, 0xfffff6df, 0xffebd3ac, Shader.TileMode.CLAMP));
-                paint.setShadowLayer(dp(2), 0, dp(1), 0x55492e18);
-                c.drawCircle(x, y, radius, paint);
-                ink(board[at] > 0 ? RED_INK : INK, dp(1.5f), Paint.Style.STROKE);
-                c.drawCircle(x, y, radius - dp(1), paint);
-                c.drawCircle(x, y, radius - dp(4), paint);
-                ink(board[at] > 0 ? RED_INK : INK, 1, Paint.Style.FILL);
-                paint.setTypeface(Typeface.create("serif", Typeface.BOLD)); paint.setTextSize(cell * .57f);
-                c.drawText(Chess.name(board[at]), x, y - (paint.ascent() + paint.descent()) / 2, paint);
+                piecePainter.draw(c, px(at), py(at), radius, Chess.name(board[at]), board[at] > 0);
             }
             if (selected >= 0) {
                 ink(0xffc08b21, dp(3), Paint.Style.STROKE);
