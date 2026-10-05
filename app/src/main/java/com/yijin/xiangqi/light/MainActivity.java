@@ -43,13 +43,14 @@ public final class MainActivity extends Activity {
     private static final String[] LEVELS = {"简单", "普通", "困难", "大师"};
     private static final String[] LEVEL_NOTES = {"熟悉规则，轻松入门", "稳扎稳打，练习应对", "专业引擎，深入计算", "专业引擎，全力挑战"};
     private WoodPiecePainter piecePainter;
+    private GameSounds sounds;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private Future<?> search;
     private int[] board = Chess.initial();
     private int turn = Chess.RED, selected = -1, lastFrom = -1, lastTo = -1, difficulty = 1;
     private boolean twoPlayers, watching, thinking, finished, active;
-    private boolean gameShowing, hasSavedGame, vibration = true;
+    private boolean gameShowing, hasSavedGame, vibration = true, soundEnabled = true;
     private int setupMode, setupLevel = 1, winner, plyCount;
     private String resultReason = "";
     private FrameLayout screen;
@@ -83,6 +84,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         piecePainter = new WoodPiecePainter(this);
+        sounds = new GameSounds(this);
         strongEngine = new StrongEngine(this);
         restore();
         SharedPreferences options = getSharedPreferences("options", MODE_PRIVATE);
@@ -90,6 +92,8 @@ public final class MainActivity extends Activity {
         if (setupMode < 0 || setupMode > 2) setupMode = 0;
         setupLevel = Math.max(0, Math.min(3, options.getInt("level", difficulty)));
         vibration = options.getBoolean("vibration", true);
+        soundEnabled = options.getBoolean("sound", true);
+        sounds.setEnabled(soundEnabled);
         if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
@@ -224,7 +228,8 @@ public final class MainActivity extends Activity {
     }
     private void saveOptions() {
         getSharedPreferences("options", MODE_PRIVATE).edit().putInt("mode", setupMode)
-                .putInt("level", setupLevel).putBoolean("vibration", vibration).apply();
+                .putInt("level", setupLevel).putBoolean("vibration", vibration)
+                .putBoolean("sound", soundEnabled).apply();
     }
     private void startFromHome() {
         Runnable begin = () -> { twoPlayers = setupMode == 1; watching = setupMode == 2; difficulty = setupLevel; showGame(); restart(); };
@@ -234,6 +239,7 @@ public final class MainActivity extends Activity {
         else begin.run();
     }
     private void goHome() {
+        sounds.stop();
         cancelSearch(); if (watching) watchPaused = true;
         selected = -1; targets.clear(); if (hasSavedGame) save(); showHome();
     }
@@ -322,7 +328,11 @@ public final class MainActivity extends Activity {
     private void showSettings() {
         if (watching && gameShowing && !watchPaused) toggleWatching();
         new AlertDialog.Builder(this).setTitle("游戏设置")
-                .setMultiChoiceItems(new String[]{"落子震动"}, new boolean[]{vibration}, (d, n, checked) -> { vibration = checked; saveOptions(); })
+                .setMultiChoiceItems(new String[]{"落子震动", "音效（落子、吃子、将军）"}, new boolean[]{vibration, soundEnabled}, (d, n, checked) -> {
+                    if (n == 0) vibration = checked;
+                    else { soundEnabled = checked; sounds.setEnabled(checked); }
+                    saveOptions();
+                })
                 .setNeutralButton("玩法说明", (d, w) -> showRules()).setPositiveButton("完成", null).show();
     }
     private void showRules() {
@@ -332,7 +342,7 @@ public final class MainActivity extends Activity {
     }
     private void showAbout() {
         new AlertDialog.Builder(this).setTitle("关于掌上象棋")
-                .setMessage("掌上象棋 2.2\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋子素材与字形按设计效果图制作。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
+                .setMessage("掌上象棋 2.3\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋子素材与字形按设计效果图制作。\n音效包含落子、吃子与将军语音，可在设置中关闭。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
                 .setPositiveButton("关闭", null).show();
     }
 
@@ -400,8 +410,10 @@ public final class MainActivity extends Activity {
         plyCount++;
         lastFrom = m.from; lastTo = m.to; selected = -1; targets.clear(); hintMove = null;
         note = (piece > 0 ? "红方 · " : "黑方 · ") + notation + (captured == 0 ? "" : " · 吃" + Chess.name(captured));
-        if (Chess.inCheck(board, turn)) note += "将军。";
+        boolean checking = Chess.inCheck(board, turn);
+        if (checking) note += "将军。";
         refresh(); save();
+        if (active && gameShowing) sounds.onMove(captured != 0, checking);
         if (vibration) boardView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         if (finished) {
             note = "本局结束，可以悔棋继续，也可以重开。";
@@ -496,6 +508,7 @@ public final class MainActivity extends Activity {
 
     private void undo() {
         if (history.isEmpty()) return;
+        sounds.stop();
         cancelSearch();
         if (watching) watchPaused = true;
         Snapshot restore = history.remove(history.size() - 1);
@@ -515,6 +528,7 @@ public final class MainActivity extends Activity {
     }
 
     private void restart() {
+        sounds.stop();
         cancelSearch(); board = Chess.initial(); turn = Chess.RED; history.clear();
         winner = 0; resultReason = ""; plyCount = 0; hasSavedGame = true;
         selected = lastFrom = lastTo = -1; targets.clear();
@@ -609,14 +623,15 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) { board = Chess.initial(); turn = Chess.RED; history.clear(); hasSavedGame = false; winner = 0; plyCount = 0; }
     }
 
-    @Override protected void onResume() { super.onResume(); active = true; refresh(); maybePhoneMove(); }
+    @Override protected void onResume() { super.onResume(); active = true; sounds.setActive(true); refresh(); maybePhoneMove(); }
     @Override protected void onPause() {
+        sounds.setActive(false);
         active = false; cancelSearch();
         if (watching) watchPaused = true;
         note = watching ? "观战已保存并暂停，点击继续或下一步。" : "棋局已保存，可以继续下棋。";
         save(); super.onPause();
     }
-    @Override protected void onDestroy() { cancelSearch(); worker.submit(() -> strongEngine.close()); worker.shutdown(); super.onDestroy(); }
+    @Override protected void onDestroy() { sounds.release(); cancelSearch(); worker.submit(() -> strongEngine.close()); worker.shutdown(); super.onDestroy(); }
 
     private final class PieceAvatar extends View {
         private final boolean red;

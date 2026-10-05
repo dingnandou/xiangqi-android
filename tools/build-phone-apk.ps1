@@ -44,7 +44,7 @@ Write-Output '1/6 编译安卓资源'
 & "$toolsRoot\aapt2.exe" compile --dir "$buildRoot\source\res" -o "$buildRoot\resources.zip"
 Assert-Exit '资源编译'
 & "$toolsRoot\aapt2.exe" link -I $androidJar --manifest "$buildRoot\source\AndroidManifest.xml" `
-    --min-sdk-version 26 --target-sdk-version 36 --version-code 5 --version-name '2.2' `
+    --min-sdk-version 26 --target-sdk-version 36 --version-code 6 --version-name '2.3' `
     -A "$buildRoot\source\assets" -0 nnue `
     --java "$buildRoot\generated" -o "$buildRoot\unsigned.apk" "$buildRoot\resources.zip"
 Assert-Exit '资源链接'
