@@ -42,7 +42,7 @@ public final class MainActivity extends Activity {
             RED_INK = 0xff963d35, WOOD = 0xfff0dfbb, LINE = 0xff927858, GOLD = 0xffb18a4d;
     private static final String[] LEVELS = {"简单", "普通", "困难", "大师"};
     private static final String[] LEVEL_NOTES = {"熟悉规则，轻松入门", "稳扎稳打，练习应对", "专业引擎，深入计算", "专业引擎，全力挑战"};
-    private final WoodPiecePainter piecePainter = new WoodPiecePainter();
+    private WoodPiecePainter piecePainter;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private Future<?> search;
@@ -82,6 +82,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        piecePainter = new WoodPiecePainter(this);
         strongEngine = new StrongEngine(this);
         restore();
         SharedPreferences options = getSharedPreferences("options", MODE_PRIVATE);
@@ -331,7 +332,7 @@ public final class MainActivity extends Activity {
     }
     private void showAbout() {
         new AlertDialog.Builder(this).setTitle("关于掌上象棋")
-                .setMessage("掌上象棋 2.1\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
+                .setMessage("掌上象棋 2.2\n离线对弈 · 本地存档\n\n困难、大师：Pikafish 专业象棋引擎。引擎采用 GPL-3.0 许可，完整源码及许可随本项目提供。NNUE 权重采用上游非商业使用许可。\n\n棋子素材与字形按设计效果图制作。\n\n棋局和设置保存在这部手机上，无需账号或联网。")
                 .setPositiveButton("关闭", null).show();
     }
 

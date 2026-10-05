@@ -1,11 +1,11 @@
 # 当前工程状态
 
-更新日期：2026-10-05。当前版本：掌上象棋 2.1 / versionCode 4。
+更新日期：2026-10-05。当前版本：掌上象棋 2.2 / versionCode 5。
 
 ## 本轮实现
 
-- 根据棋子效果图新增统一的 WoodPiecePainter：圆润倒角、木纹、微凸表面、高光与阴影，清晰的红黑棋字替代彩色双圈；棋子直径从格距的 84% 调整为 88%。
-- 对局棋子、双方头像和首页装饰使用同一绘制器；复用渐变与路径，按手机实际格距缩放，触控坐标与棋局规则保持原有行为。
+- 修正棋字偏移与字形不匹配：从原效果图取得红黑两套书法棋字，清除木纹和阴影，并按实际像素尺寸缓存字形，以可见墨色边界居中；不使用系统字体。
+- 木质棋子使用参考图风格的透明素材；对局棋子、双方头像和首页装饰共用 WoodPiecePainter。棋子直径保持格距的 88%，触控与规则保持原有行为。
 - 新首页：三种模式、四档难度、开始新局、继续上局、设置、说明与关于。
 - 米白/朱红/木色统一视觉，卡片式选择与双方信息、渐变木棋盘与棋子、回合显示。
 - 人机、双人和 AI 观战；暂停、逐步、调速、提示、悔棋、重开、认输。
@@ -30,6 +30,9 @@
 |---|---|
 | app/src/main/java/com/yijin/xiangqi/light/MainActivity.java | 首页、棋盘、模式、设置、存档和生命周期 |
 | app/src/main/java/com/yijin/xiangqi/light/WoodPiecePainter.java | 圆润木质棋子、头像和首页装饰绘制 |
+| app/src/main/assets/wood-piece.png | 透明木质棋子底图 |
+| app/src/main/assets/piece-lettering-reference.png | 原效果图，用于取得固定书法字形 |
+| docs/棋子素材说明.md | 素材、字形和生成提示词 |
 | app/src/main/java/com/yijin/xiangqi/light/Chess.java | 规则、轻量对手、FEN/UCI、基础记谱 |
 | app/src/main/java/com/yijin/xiangqi/light/StrongEngine.java | NNUE 校验、专业引擎调度、合法着检查 |
 | app/src/main/cpp/strong_bridge.cpp | 引擎回调、限时搜索、共享生命周期 |
@@ -39,6 +42,7 @@
 | tools/check-home-ui.ps1 | 首页、四档对手、返回/继续、取消、设置、大字体 |
 | tools/check-phone-ui.ps1 | 单人/双人/提示/悔棋/恢复 |
 | tools/check-watch-ui.ps1 | 观战连续走棋、暂停、逐步、恢复 |
+| tools/check-piece-centering.ps1 | 从实际截图测量全部棋字的位置 |
 | output/掌上象棋.apk | 最新安装包 |
 
 ## 专业引擎
@@ -49,7 +53,14 @@ NNUE SHA256：`7D13D73569A9B571BA0EB20CF1596247BC2A42738967E61AFEF6482B231E900E`
 
 Pikafish 为 GPL-3.0，权重采用上游非商业许可。对应源代码和许可证随项目提供，许可证也随 APK 提供。
 
-## 2.1 本次验证
+## 2.2 本次验证
+
+- 最终 APK 编译、签名、对齐、覆盖安装与启动通过；22 项安卓对战、提示、悔棋、恢复与小屏交互检查通过。
+- 160 dpi / 394×851 与 320 dpi / 788×1702 下全部 32 枚棋字的位置检查通过，共 64 次逐子测量。截图检测容差分别为 2 和 2.5 个物理像素，用于覆盖细笔画的抗锯齿边缘差异。
+- 高分辨率提示箭头与 AI 观战实际落子、暂停检查通过；首页、对局和观战截图更新为最终 APK 实际画面。
+- 未在实体手机实测。规则与专业引擎代码未修改。
+
+## 2.1 既有验证
 
 - 最终安装包完成 arm64-v8a/x86_64 构建、资源/DEX、签名与 ZIP 对齐检查；Android 11 模拟器覆盖安装并启动成功。
 - 22 项现有安卓交互检查全部通过，覆盖人机/双人、触控落子、提示、悔棋、存档恢复与重开，没有运行时崩溃。
@@ -73,4 +84,4 @@ Pikafish 为 GPL-3.0，权重采用上游非商业许可。对应源代码和许
 
 旧 Kotlin 验证页面、旧 JNI 桥接和 01～04 文档保留为历史资料，不进入当前安装包；其旧缺陷报告不代表新桥接运行结果。
 
-最终 APK SHA256：`DDDA5ED3D56BDF0A4E7DA9037E7557CCFE9C2CBB43C2F51EDDF23E31853AD4FA`；大小 51811463 字节。
+最终 APK SHA256：`D8F2C06CFBCD9F5E777D545DA8C5E7F667F095E0F1806EBFE78678EC04F7B367`；大小 54883609 字节。
