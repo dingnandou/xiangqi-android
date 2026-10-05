@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12 及以下的自动备份规则。
+    M0 只有引擎验证数据，没有棋谱与练习记录，因此全量包含即可。
+    接入 Room 之后必须在这里显式排除可重新生成的缓存目录。
+-->
+<full-backup-content>
+    <include domain="file" path="." />
+    <exclude domain="file" path="network/pikafish.nnue.verified" />
+</full-backup-content>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 引擎层不声明任何权限：离线本地计算，不需要网络与存储权限。 -->
+</manifest>

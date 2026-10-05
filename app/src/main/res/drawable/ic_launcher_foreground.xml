@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    M0 占位图标：一个简化棋盘格 + 圆形棋子轮廓。
+    换成正式美术资源时只改这里，不影响其他代码。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 棋盘格 -->
+    <path
+        android:fillColor="#B98B4E"
+        android:pathData="M26,26 h56 v56 h-56 z" />
+    <path
+        android:fillColor="#F3EAD6"
+        android:pathData="M32,32 h44 v44 h-44 z" />
+    <path
+        android:strokeColor="#B98B4E"
+        android:strokeWidth="1.6"
+        android:pathData="M43,32 V76 M54,32 V76 M65,32 V76 M32,43 H76 M32,54 H76 M32,65 H76" />
+
+    <!-- 中央棋子 -->
+    <path
+        android:fillColor="#A63A2A"
+        android:pathData="M54,42 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+    <path
+        android:fillColor="#F3EAD6"
+        android:pathData="M47,38 h14 v2 h-14 z M47,44 h14 v2 h-14 z M50,35 h8 v12 h-8 z" />
+</vector>

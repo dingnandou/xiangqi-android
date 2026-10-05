@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        纯 Compose 工程，不引入 AppCompat / Material Components。
+        用平台自带的 Light NoActionBar 作为父主题，窗口装饰由 enableEdgeToEdge() 处理。
+    -->
+    <style name="Theme.YijinXiangqi" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

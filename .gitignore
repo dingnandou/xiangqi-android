@@ -1,0 +1,24 @@
+# Gradle / build output
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/
+
+# DSH working files
+logs/
+.acl-recovery/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lightweight phone game build / local signing material
+.phone-build/
+.local-keys/
+output/*
+!output/掌上象棋.apk
+!output/手机界面.png
+!output/观战界面.png

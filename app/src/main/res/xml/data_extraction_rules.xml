@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ 的备份/换机规则。引擎网络文件体积大且可随 APK 重新下发，排除掉。 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="network/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="network/" />
+    </device-transfer>
+</data-extraction-rules>
